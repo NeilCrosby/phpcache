@@ -37,13 +37,17 @@
    
    class PhpCache {
       var $sFile;
+      var $sPrefix;
       var $sFileLock;
       var $iCacheTime;
       var $oCacheObject;
       
-      function PhpCache($sKey, $iCacheTime) {
-         $this->sFile = CACHE_PATH.md5($sKey).".txt";
+      function PhpCache($sKey, $iCacheTime, $sPrefix='default') {
+         $this->sFile = CACHE_PATH.$sPrefix.'_'.md5($sKey).".txt";
          $this->sFileLock = "$this->sFile.lock";
+         #if ( 0 == $iCacheTime) {
+          # $this->InValidate();
+         #}
          $iCacheTime >= 10 ? $this->iCacheTime = $iCacheTime : $this->iCacheTime = 10;
       }
       
@@ -82,6 +86,20 @@
       
       function ReValidate() {
          touch($this->sFile);
+      }
+      
+      function InValidate() {
+        if (file_exists($this->sFile)) {
+          unlink($this->sFile);
+        }
+        if (file_exists($this->sFileLock)) {
+          unlink($this->sFileLock);
+        }
+      }
+      
+      function InValidateByPrefix() {
+        // look for all files with $this->sPrefix at the beginning of their
+        // filename and delete them
       }
    }
 ?>
