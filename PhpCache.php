@@ -36,13 +36,16 @@
    define('CACHE_PATH', $_SERVER['DOCUMENT_ROOT'].'/cache/');
    
    class PhpCache {
+      var $sKeyMD5;
       var $sFile;
       var $sPrefix;
       var $sFileLock;
       var $iCacheTime;
-      var $oCacheObject;
+      
+      static $aCache = array();
       
       function PhpCache($sKey, $iCacheTime, $sPrefix='default') {
+        $this->sKeyMD5 = md5($sKey);
          $this->sFile = CACHE_PATH.$sPrefix.'_'.md5($sKey).".txt";
          $this->sFileLock = "$this->sFile.lock";
          #if ( 0 == $iCacheTime) {
@@ -52,12 +55,15 @@
       }
       
       function Check() {
+         if ( array_key_exists( $this->sKeyMD5, self::$aCache ) ) {
+           return true;
+         }
          if (file_exists($this->sFileLock)) return true;
          return (file_exists($this->sFile) && ($this->iCacheTime == -1 || time() - filemtime($this->sFile) <= $this->iCacheTime));
       }
       
       function Exists() {
-         return (file_exists($this->sFile) || file_exists($this->sFileLock));
+         return (array_key_exists( $this->sKeyMD5, self::$aCache )) || (file_exists($this->sFile) || file_exists($this->sFileLock));
       }
       
       function Set($vContents) {
@@ -71,16 +77,23 @@
             if (file_exists($this->sFileLock)) {
                unlink($this->sFileLock);
             }
+            self::$aCache[$this->sKeyMD5] = $vContents;
             return true;
          }     
          return false;
       }
       
       function Get() {
-         if (file_exists($this->sFileLock)) {
-            return unserialize(file_get_contents($this->sFileLock));
+         if (array_key_exists( $this->sKeyMD5, self::$aCache )) {
+            return self::$aCache[$this->sKeyMD5];
+         } else if (file_exists($this->sFileLock)) {
+            $temp = unserialize(file_get_contents($this->sFileLock));
+            self::$aCache[$this->sKeyMD5] = $temp;
+            return $temp;
          } else {
-            return unserialize(file_get_contents($this->sFile));
+            $temp = unserialize(file_get_contents($this->sFile));
+            self::$aCache[$this->sKeyMD5] = $temp;
+            return $temp;
          }
       }
       
