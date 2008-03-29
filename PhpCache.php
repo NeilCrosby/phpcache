@@ -29,33 +29,39 @@
       ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
       (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+      Updated by Neil Crosby for thetenwordreview.com
+      Now allows a prefix to be given to the cached file's name.
+      Also keeps cached data in memory for the script's duration so that
+      re-requesting it on the same page does not incur a reload of the file.
    
-      Last Updated:  7th January 2007                             */
+      Last Updated:  23rd March 2008
    /***************************************************************/
    
    define('CACHE_PATH', $_SERVER['DOCUMENT_ROOT'].'/cache/');
    
    class PhpCache {
-      var $sKeyMD5;
       var $sFile;
-      var $sPrefix;
       var $sFileLock;
       var $iCacheTime;
       
+      var $sShortKey;
       static $aCache = array();
       
-      function PhpCache($sKey, $iCacheTime, $sPrefix='default') {
-        $this->sKeyMD5 = md5($sKey);
-         $this->sFile = CACHE_PATH.$sPrefix.'_'.md5($sKey).".txt";
+      /**
+       * @param $sPrefix    Allows an extra string to be prepended to the 
+       *                    MD5ed filename to allow for easy identification
+       *                    between cached types.
+       **/
+      function PhpCache($sKey, $iCacheTime, $sPrefix='') {
+         $this->sShortKey = $sPrefix.md5($sKey);
+         $this->sFile = CACHE_PATH.$this->sShortKey.".txt";
          $this->sFileLock = "$this->sFile.lock";
-         #if ( 0 == $iCacheTime) {
-          # $this->InValidate();
-         #}
          $iCacheTime >= 10 ? $this->iCacheTime = $iCacheTime : $this->iCacheTime = 10;
       }
       
       function Check() {
-         if ( array_key_exists( $this->sKeyMD5, self::$aCache ) ) {
+         if ( array_key_exists( $this->sShortKey, self::$aCache ) ) {
            return true;
          }
          if (file_exists($this->sFileLock)) return true;
@@ -63,7 +69,7 @@
       }
       
       function Exists() {
-         return (array_key_exists( $this->sKeyMD5, self::$aCache )) || (file_exists($this->sFile) || file_exists($this->sFileLock));
+         return (array_key_exists( $this->sShortKey, self::$aCache )) || (file_exists($this->sFile) || file_exists($this->sFileLock));
       }
       
       function Set($vContents) {
@@ -77,42 +83,28 @@
             if (file_exists($this->sFileLock)) {
                unlink($this->sFileLock);
             }
-            self::$aCache[$this->sKeyMD5] = $vContents;
+            self::$aCache[$this->sShortKey] = $vContents;
             return true;
          }     
          return false;
       }
       
       function Get() {
-         if (array_key_exists( $this->sKeyMD5, self::$aCache )) {
-            return self::$aCache[$this->sKeyMD5];
+         if (array_key_exists( $this->sShortKey, self::$aCache )) {
+            return self::$aCache[$this->sShortKey];
          } else if (file_exists($this->sFileLock)) {
             $temp = unserialize(file_get_contents($this->sFileLock));
-            self::$aCache[$this->sKeyMD5] = $temp;
+            self::$aCache[$this->sShortKey] = $temp;
             return $temp;
          } else {
             $temp = unserialize(file_get_contents($this->sFile));
-            self::$aCache[$this->sKeyMD5] = $temp;
+            self::$aCache[$this->sShortKey] = $temp;
             return $temp;
          }
       }
       
       function ReValidate() {
          touch($this->sFile);
-      }
-      
-      function InValidate() {
-        if (file_exists($this->sFile)) {
-          unlink($this->sFile);
-        }
-        if (file_exists($this->sFileLock)) {
-          unlink($this->sFileLock);
-        }
-      }
-      
-      function InValidateByPrefix() {
-        // look for all files with $this->sPrefix at the beginning of their
-        // filename and delete them
       }
    }
 ?>
