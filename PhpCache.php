@@ -57,7 +57,7 @@
          $this->sShortKey = $sPrefix.md5($sKey);
          $this->sFile = CACHE_PATH.$this->sShortKey.".txt";
          $this->sFileLock = "$this->sFile.lock";
-         $iCacheTime >= 10 ? $this->iCacheTime = $iCacheTime : $this->iCacheTime = 10;
+         $iCacheTime >= 0 ? $this->iCacheTime = $iCacheTime : $this->iCacheTime = 0;
       }
       
       function Check() {
