@@ -85,7 +85,12 @@
             fwrite($oFile, serialize($vContents));
             fclose($oFile);
             if (file_exists($this->sFileLock)) {
-               unlink($this->sFileLock);
+               /*
+                * Suppress errors that come from unlinking the lock file.
+                * If a race condition has occurred and the lock file has
+                * already been deleted, that's okay.
+                */
+               @unlink($this->sFileLock);
             }
             self::$aCache[$this->sShortKey] = $vContents;
             return true;
